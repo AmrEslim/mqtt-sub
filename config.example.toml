@@ -1,0 +1,48 @@
+# Example configuration for the MUC ingest service.
+#
+#   copy config.example.toml config.toml
+#
+# config.toml is git-ignored and is the only file you edit per deployment.
+# Any string value may be written as "env:NAME" to have it read from the process
+# environment instead - that is how the Windows service receives its secrets.
+#
+# Relative paths are resolved against the directory containing this file.
+
+[mqtt]
+host = "10.20.1.57"                     # mosquitto broker
+port = 1883
+topics = ["muc/#"]                      # one or more MQTT topic filters
+client_id = "muc-ingest"                # must be stable: it keys the session state
+username = "muc-ingest"
+password = "env:MUC_MQTT_PASSWORD"      # or a literal string for a throwaway broker
+keepalive = 60
+qos = 1
+clean_session = false                   # false = persistent session; the broker
+                                        # queues messages while the service is down
+
+[influxdb]
+url = "http://127.0.0.1:8086"
+org = "gewobag"
+token = "env:MUC_INFLUX_TOKEN"
+bucket = "meter"                        # normalised readings
+raw_bucket = "raw"                      # verbatim payloads; set to "" to disable
+batch_size = 5000                       # points per write request
+flush_interval_ms = 2000                # ...or flush after this long, whichever first
+write_timeout_ms = 20000
+verify_ssl = true
+
+[spool]
+directory = "spool"                     # on-disk buffer used when InfluxDB is unavailable
+max_megabytes = 2048                    # oldest spool files are dropped beyond this
+
+[logging]
+level = "INFO"
+file = "logs/ingest.log"
+max_bytes = 52428800
+backups = 10
+
+[retention]
+# Applied by the service when it creates/verifies its buckets.
+# 0 means "keep forever".
+readings_days = 0
+raw_days = 30
